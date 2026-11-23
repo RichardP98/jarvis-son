@@ -1,8 +1,11 @@
+
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
 #include <cstdio>
 #include <string>
+#include <algorithm>
+#include <cctype>
 
 #include "procesos.hpp"
 #include "estado.hpp"
@@ -49,8 +52,83 @@ string obtenerFechaHora() {
     return resultado;
 }
 
+// Identificar preguntas que puede responder localmente
+bool obtenerRespuestaLocal(
+    const string& texto,
+    string& respuesta
+) {
+    string pregunta = texto;
+
+    transform(
+        pregunta.begin(),
+        pregunta.end(),
+        pregunta.begin(),
+        [](unsigned char c) {
+            return static_cast<char>(tolower(c));
+        }
+    );
+
+    bool preguntaTecnologia =
+        pregunta.find("tecnolog") != string::npos ||
+        (
+            pregunta.find("escuchar") != string::npos &&
+            pregunta.find("responder") != string::npos
+        ) ||
+        pregunta.find("como procesas mi voz") != string::npos;
+
+    if (preguntaTecnologia) {
+        respuesta =
+            "Utilizo Whisper.cpp con el modelo Whisper Tiny "
+            "para convertir tu audio en texto. "
+            "Qwen 3.5 de 0.8B, mediante llama.cpp, "
+            "genera mis respuestas. "
+            "Termux TTS convierte esas respuestas en voz "
+            "en espanol y FFmpeg prepara el audio "
+            "antes de la transcripcion.";
+
+        return true;
+    }
+
+    return false;
+}
+
+// Guardar y reproducir una respuesta
+bool guardarYReproducir(const string& respuesta) {
+    string ruta = string(getenv("HOME")) +
+                  "/jarvis-son/respuesta.txt";
+
+    ofstream archivo(ruta);
+
+    if (!archivo.is_open()) {
+        return false;
+    }
+
+    archivo << respuesta << endl;
+    archivo.close();
+
+    const string comando =
+        "termux-tts-speak -l es "
+        "\"$(cat $HOME/jarvis-son/respuesta.txt)\"";
+
+    return ejecutarProceso(comando);
+}
+
 // Generar respuesta con Qwen y reproducirla
 bool generarRespuesta(const string& texto) {
+
+    // Primero comprobar si existe una respuesta local
+    string respuestaLocal;
+
+    if (obtenerRespuestaLocal(texto, respuestaLocal)) {
+        cout << "\nRespuesta local de Jarvis-son:"
+             << endl;
+
+        cout << respuestaLocal << endl;
+
+        return guardarYReproducir(respuestaLocal);
+    }
+
+    // Si no existe una respuesta local, utilizar Qwen
     string fechaHora = obtenerFechaHora();
 
     if (fechaHora.empty()) {
@@ -66,32 +144,50 @@ bool generarRespuesta(const string& texto) {
         return false;
     }
 
-    archivo << "Eres Jarvis-son, un asistente de voz. "
-            << "Responde en espanol latinoamericano, "
-            << "de forma breve y clara.\n"
-            << "La fecha y hora actual del dispositivo es: "
+    archivo << "Eres Jarvis-son, un asistente virtual de voz "
+            << "que funciona localmente en Android.\n"
+            << "Responde en espanol latinoamericano.\n"
+            << "Instrucciones:\n"
+            << "1. Contesta directamente la pregunta del usuario.\n"
+            << "2. No saludes ni repitas la pregunta.\n"
+            << "3. Usa respuestas breves, maximo tres oraciones.\n"
+            << "4. Tu arquitectura utiliza whisper.cpp con "
+            << "Whisper Tiny para transcribir audio, "
+            << "Qwen3.5-0.8B mediante llama.cpp para generar "
+            << "respuestas y Termux TTS para producir voz.\n"
+            << "5. No confundas las funciones de estas tecnologias.\n"
+            << "6. No inventes funciones ni tecnologias.\n"
+            << "7. Si no sabes algo, dilo claramente.\n"
+            << "Fecha y hora del dispositivo: "
             << fechaHora << ".\n"
-            << "Utiliza esta informacion para responder "
-            << "preguntas sobre la fecha y hora. "
+            << "Usa estos datos cuando corresponda. "
             << "No inventes fechas ni horas.\n\n"
-            << "Usuario: " << texto << "\n"
-            << "Jarvis-son:";
+            << "Pregunta del usuario: " << texto << "\n"
+            << "Respuesta:";
 
     archivo.close();
 
     const string comando =
+        "rm -f $HOME/jarvis-son/respuesta.txt "
+        "$HOME/jarvis-son/respuesta_completa.txt && "
+
         "$HOME/llama.cpp/build/bin/llama-cli "
         "-m $HOME/modelos/Qwen3.5-0.8B-Q4_0.gguf "
         "-f $HOME/jarvis-son/prompt.txt "
-        "-n 96 -c 1024 -t 3 --reasoning off "
+        "-n 60 -c 1024 -t 3 "
+        "--reasoning off "
         "--single-turn --simple-io "
-        "2>&1 | tee $HOME/jarvis-son/respuesta_completa.txt && "
-        "awk '/Jarvis-son:/{captura=1; next} "
-        "/^\\[ Prompt:/{captura=0} "
-        "captura {print}' "
-        "$HOME/jarvis-son/respuesta_completa.txt "
+        "--no-display-prompt "
+        "-o $HOME/jarvis-son/respuesta_completa.txt "
+        "&& "
+
+        "sed -n '/^Assistant:/,$p' "
+        "$HOME/jarvis-son/respuesta_completa.txt | "
+        "sed '1d' "
         "> $HOME/jarvis-son/respuesta.txt && "
+
         "test -s $HOME/jarvis-son/respuesta.txt && "
+
         "termux-tts-speak -l es "
         "\"$(cat $HOME/jarvis-son/respuesta.txt)\"";
 
@@ -146,7 +242,7 @@ int main() {
                     cout << "Texto reconocido: "
                          << texto << endl;
 
-                    cout << "\nGenerando respuesta con Qwen..."
+                    cout << "\nGenerando respuesta..."
                          << endl;
 
                     cambiarEstado(estado, Estado::GENERANDO);

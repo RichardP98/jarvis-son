@@ -1,0 +1,71 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b1220">
+    <title>Jarvis-son | Asistente local</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <main class="app">
+
+        <header class="header">
+            <div class="brand">
+                <div class="brand-icon">J</div>
+                <div>
+                    <h1>JARVIS-SON</h1>
+                    <span>Asistente inteligente local</span>
+                </div>
+            </div>
+
+            <div class="connection">
+                <span class="status-dot"></span>
+                <span>LOCAL</span>
+            </div>
+        </header>
+
+        <section class="assistant">
+            <div class="orb" id="orb">
+                <div class="orb-inner">
+                    <span>J</span>
+                </div>
+            </div>
+
+            <h2>Hola, estoy aquí.</h2>
+            <p id="status">Estoy listo para escucharte.</p>
+
+            <button id="micButton" class="mic-button">
+                <span>🎙</span>
+            </button>
+
+            <span class="mic-label" id="micLabel">
+                PRESIONA PARA HABLAR
+            </span>
+        </section>
+
+        <section class="conversation">
+            <div class="section-title">
+                <h3>Conversación</h3>
+                <span id="messageCount">0 mensajes</span>
+            </div>
+
+            <div id="chat" class="chat">
+                <div class="welcome">
+                    <p>Las conversaciones aparecerán aquí.</p>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <span>JARVIS-SON V1</span>
+            <span>Procesamiento local</span>
+        </footer>
+
+    </main>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
