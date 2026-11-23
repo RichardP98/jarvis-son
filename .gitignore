@@ -1,0 +1,19 @@
+# Archivos compilados
+*.o
+/jarvis
+/build/
+
+# Audio y datos temporales
+*.wav
+*.m4a
+/transcripcion*
+/prompt.txt
+/respuesta*.txt
+
+# Modelos locales
+*.gguf
+*.bin
+*.onnx
+
+# Archivos del sistema
+.DS_Store
